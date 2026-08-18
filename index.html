@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Backlog — Andrés David</title>
+
+<link rel="manifest" href="./manifest.json" />
+<meta name="theme-color" content="#0a0710" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<link rel="icon" type="image/png" href="./icon-192.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0a0710;
+    --surface:#150e20;
+    --surface-2:#1d1430;
+    --line:rgba(168,133,247,0.14);
+    --line-strong:rgba(168,133,247,0.32);
+    --violet:#a97bff;
+    --violet-hot:#c9a4ff;
+    --violet-deep:#6c3fd4;
+    --ember:#ff9f4a;
+    --moss:#5fd3a0;
+    --ink:#f0ebfa;
+    --ink-mute:#9a8bb5;
+    --ink-faint:#6b5d85;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(900px 520px at 12% -8%, rgba(108,63,212,0.20), transparent 62%),
+      radial-gradient(700px 420px at 96% 4%, rgba(169,123,255,0.10), transparent 58%),
+      var(--void);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:calc(26px + env(safe-area-inset-top)) 15px 70px;
+  }
+
+  .shell{max-width:1080px;margin:0 auto;}
+
+  /* ---------- Encabezado ---------- */
+
+  .masthead{margin-bottom:26px;}
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:var(--violet);
+    margin-bottom:10px;
+  }
+
+  .masthead h1{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-weight:800;
+    font-size:clamp(2.1rem, 8vw, 3.4rem);
+    line-height:0.95;
+    letter-spacing:-0.03em;
+    margin:0 0 14px;
+  }
+  .masthead h1 em{
+    font-style:normal;
+    color:var(--violet);
+  }
+
+  .masthead .blurb{
+    color:var(--ink-mute);
+    font-size:0.9rem;
+    max-width:44ch;
+    line-height:1.55;
+    margin:0 0 22px;
+  }
+
+  .meter-wrap{
+    border:1px solid var(--line);
+    background:rgba(255,255,255,0.02);
+    border-radius:16px;
+    padding:16px 18px;
+  }
+  .meter-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:11px;
+  }
+  .meter-top .lbl{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .meter-top .num{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-weight:800;
+    font-size:1.05rem;
+  }
+  .meter-top .num b{color:var(--violet);}
+
+  .meter-track{
+    height:7px;
+    background:rgba(255,255,255,0.06);
+    border-radius:99px;
+    overflow:hidden;
+  }
+  .meter-fill{
+    height:100%;
+    width:0%;
+    border-radius:99px;
+    background:linear-gradient(90deg, var(--violet-deep), var(--violet-hot));
+    box-shadow:0 0 16px rgba(169,123,255,0.55);
+    transition:width .6s cubic-bezier(.2,.85,.25,1);
+  }
+
+  /* ---------- Barra de acción ---------- */
+
+  .actionbar{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+    margin:22px 0 26px;
+  }
+
+  button{
+    font-family:'DM Sans', sans-serif;
+    cursor:pointer;
+    border:none;
+    transition:background .16s ease, border-color .16s ease, color .16s ease, transform .12s ease;
+  }
+  button:active{transform:translateY(1px);}
+  button:focus-visible{
+    outline:2px solid var(--violet-hot);
+    outline-offset:2px;
+  }
+
+  .btn-primary{
+    background:var(--violet-deep);
+    color:#fff;
+    font-weight:700;
+    font-size:0.86rem;
+    padding:11px 19px;
+    border-radius:11px;
+  }
+  .btn-primary:hover{background:#7b4de0;}
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-mute);
+    font-weight:500;
+    font-size:0.82rem;
+    padding:11px 15px;
+    border-radius:11px;
+    border:1px solid var(--line);
+  }
+  .btn-ghost:hover{color:var(--ink);border-color:var(--line-strong);}
+
+  #installBtn{display:none;}
+  #installBtn.visible{display:inline-block;}
+
+  /* ---------- Formulario ---------- */
+
+  .composer{
+    display:none;
+    border:1px solid var(--line-strong);
+    background:var(--surface);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:28px;
+  }
+  .composer.open{display:block;}
+
+  .composer h3{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    margin:0 0 16px;
+  }
+
+  .form-row{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:13px;
+    margin-bottom:13px;
+  }
+  @media(min-width:620px){
+    .form-row.two{grid-template-columns:1.4fr 1fr;}
+  }
+
+  .composer label{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.64rem;
+    letter-spacing:0.13em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:7px;
+  }
+
+  .composer input, .composer select{
+    width:100%;
+    background:rgba(255,255,255,0.04);
+    border:1.5px solid rgba(255,255,255,0.08);
+    border-radius:11px;
+    color:var(--ink);
+    font-family:'DM Sans', sans-serif;
+    font-size:1rem;
+    padding:11px 13px;
+    outline:none;
+    transition:border-color .16s ease, box-shadow .16s ease;
+  }
+  .composer input:focus, .composer select:focus{
+    border-color:var(--violet);
+    box-shadow:0 0 0 3px rgba(169,123,255,0.15);
+  }
+  .composer input::placeholder{color:var(--ink-faint);}
+  .composer select option{background:var(--surface-2);color:var(--ink);}
+
+  .composer-actions{
+    display:flex;
+    gap:9px;
+    margin-top:18px;
+  }
+
+  /* ---------- Columnas ---------- */
+
+  .board{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:28px;
+  }
+  @media(min-width:900px){
+    .board{grid-template-columns:repeat(3,1fr);align-items:start;gap:20px;}
+  }
+
+  .col-head{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding-bottom:11px;
+    margin-bottom:15px;
+    border-bottom:1px solid var(--line);
+  }
+  .col-head .pip{
+    width:8px;height:8px;border-radius:50%;
+    flex-shrink:0;
+  }
+  .col-head h2{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:0.95rem;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .col-head .tally{
+    margin-left:auto;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.76rem;
+    color:var(--ink-faint);
+  }
+
+  .col[data-state="playing"] .pip{background:var(--ember);box-shadow:0 0 11px rgba(255,159,74,0.7);}
+  .col[data-state="pending"] .pip{background:var(--violet);box-shadow:0 0 11px rgba(169,123,255,0.7);}
+  .col[data-state="done"]    .pip{background:var(--moss);box-shadow:0 0 11px rgba(95,211,160,0.7);}
+
+  .stack{display:flex;flex-direction:column;gap:11px;}
+
+  /* ---------- Tarjeta ---------- */
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:15px;
+    padding:15px 16px;
+    animation:rise .34s cubic-bezier(.2,.85,.25,1) both;
+  }
+  @keyframes rise{
+    from{opacity:0;transform:translateY(7px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  .col[data-state="playing"] .card{
+    border-color:rgba(255,159,74,0.32);
+    background:linear-gradient(155deg, rgba(255,159,74,0.07), rgba(255,255,255,0.02));
+  }
+  .col[data-state="done"] .card{opacity:0.62;}
+  .col[data-state="done"] .card:hover{opacity:1;}
+
+  .card-top{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:9px;
+  }
+
+  .card h4{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    margin:0;
+    line-height:1.25;
+    letter-spacing:-0.01em;
+    flex:1;
+  }
+  .col[data-state="done"] .card h4{text-decoration:line-through;text-decoration-color:var(--ink-faint);}
+
+  .kill{
+    background:transparent;
+    color:var(--ink-faint);
+    font-size:1.1rem;
+    line-height:1;
+    padding:4px 7px;
+    border-radius:7px;
+    flex-shrink:0;
+  }
+  .kill:hover{color:#ff7b7b;background:rgba(255,123,123,0.1);}
+
+  .genre{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.66rem;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:12px;
+  }
+
+  /* medidor Iris Xe */
+  .perf{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 11px;
+    background:rgba(0,0,0,0.28);
+    border-radius:10px;
+    margin-bottom:12px;
+  }
+  .bars{display:flex;gap:3px;align-items:flex-end;flex-shrink:0;}
+  .bars i{
+    display:block;
+    width:4px;
+    background:rgba(255,255,255,0.11);
+    border-radius:2px;
+  }
+  .bars i:nth-child(1){height:7px;}
+  .bars i:nth-child(2){height:11px;}
+  .bars i:nth-child(3){height:15px;}
+  .bars i.lit{background:var(--tier-color);box-shadow:0 0 7px var(--tier-color);}
+
+  .perf-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    line-height:1.4;
+    color:var(--ink-mute);
+  }
+  .perf-text b{
+    display:block;
+    color:var(--tier-color);
+    font-size:0.63rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin-bottom:2px;
+  }
+
+  .card-actions{display:flex;gap:7px;flex-wrap:wrap;}
+
+  .move{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    color:var(--ink-mute);
+    font-size:0.76rem;
+    font-weight:500;
+    padding:8px 12px;
+    border-radius:9px;
+  }
+  .move:hover{
+    background:rgba(169,123,255,0.14);
+    border-color:var(--line-strong);
+    color:var(--violet-hot);
+  }
+
+  .empty{
+    border:1px dashed var(--line);
+    border-radius:14px;
+    padding:24px 16px;
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:0.83rem;
+    line-height:1.5;
+  }
+
+  .status{
+    margin-top:26px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    color:var(--ink-faint);
+    text-align:center;
+    min-height:16px;
+  }
+  .status.warn{color:var(--ember);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="masthead">
+    <div class="eyebrow">Andrés David · Iris Xe</div>
+    <h1>Pendientes<br/><em>por jugar</em></h1>
+    <p class="blurb">Todo lo de aquí ya está filtrado para correr en tu laptop. Mueve un juego a “Jugando” cuando lo empieces y a “Terminado” cuando lo cierres.</p>
+
+    <div class="meter-wrap">
+      <div class="meter-top">
+        <span class="lbl">Avance del backlog</span>
+        <span class="num" id="meterNum"><b>0</b> / 0</span>
+      </div>
+      <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+    </div>
+  </header>
+
+  <div class="actionbar">
+    <button class="btn-primary" id="toggleComposer">Añadir juego</button>
+    <button class="btn-ghost" id="installBtn">Instalar en el celular</button>
+  </div>
+
+  <section class="composer" id="composer">
+    <h3>Nuevo juego</h3>
+    <div class="form-row two">
+      <div>
+        <label for="fName">Nombre</label>
+        <input id="fName" type="text" placeholder="Ej. Signalis" />
+      </div>
+      <div>
+        <label for="fGenre">Género</label>
+        <input id="fGenre" type="text" placeholder="Ej. Survival horror" />
+      </div>
+    </div>
+    <div class="form-row two">
+      <div>
+        <label for="fPerf">Rendimiento en Iris Xe</label>
+        <select id="fPerf">
+          <option value="3">Vuela — 1080p, 60 fps</option>
+          <option value="2">Bien con ajustes — 900p, 40-60 fps</option>
+          <option value="1">Justito — 720p bajo, ~30 fps</option>
+        </select>
+      </div>
+      <div>
+        <label for="fState">Dónde va</label>
+        <select id="fState">
+          <option value="pending">Pendientes</option>
+          <option value="playing">Jugando ahora</option>
+          <option value="done">Terminados</option>
+        </select>
+      </div>
+    </div>
+    <div class="composer-actions">
+      <button class="btn-primary" id="saveBtn">Guardar</button>
+      <button class="btn-ghost" id="cancelBtn">Cancelar</button>
+    </div>
+  </section>
+
+  <main class="board">
+    <section class="col" data-state="playing">
+      <div class="col-head">
+        <span class="pip"></span>
+        <h2>Jugando ahora</h2>
+        <span class="tally" id="tallyPlaying">0</span>
+      </div>
+      <div class="stack" id="stackPlaying"></div>
+    </section>
+
+    <section class="col" data-state="pending">
+      <div class="col-head">
+        <span class="pip"></span>
+        <h2>Pendientes</h2>
+        <span class="tally" id="tallyPending">0</span>
+      </div>
+      <div class="stack" id="stackPending"></div>
+    </section>
+
+    <section class="col" data-state="done">
+      <div class="col-head">
+        <span class="pip"></span>
+        <h2>Terminados</h2>
+        <span class="tally" id="tallyDone">0</span>
+      </div>
+      <div class="stack" id="stackDone"></div>
+    </section>
+  </main>
+
+  <p class="status" id="status">Cargando…</p>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var KEY = 'backlog:andres:v1';
+
+  var SEED = [
+    { id:'g1', name:'Fear & Hunger',  genre:'RPG de terror / roguelike', perf:3, state:'playing' },
+    { id:'g2', name:'Darkwood',       genre:'Survival horror top-down',  perf:3, state:'pending' },
+    { id:'g3', name:'Outer Wilds',    genre:'Aventura / misterio',       perf:2, state:'pending' },
+    { id:'g4', name:'Dead Cells',     genre:'Roguelite metroidvania',    perf:3, state:'pending' },
+    { id:'g5', name:'Cuphead',        genre:'Run & gun / boss rush',     perf:3, state:'pending' },
+    { id:'g6', name:'Disco Elysium',  genre:'RPG narrativo',             perf:2, state:'pending' },
+    { id:'g7', name:'Portal 2',       genre:'Puzzles en primera persona',perf:3, state:'done' },
+    { id:'g8', name:'Hollow Knight',  genre:'Metroidvania',              perf:3, state:'done' }
+  ];
+
+  var TIERS = {
+    3:{ label:'Vuela',            detail:'1080p · 60 fps',      color:'#5fd3a0', lit:3 },
+    2:{ label:'Bien con ajustes', detail:'900p · 40-60 fps',    color:'#a97bff', lit:2 },
+    1:{ label:'Justito',          detail:'720p bajo · ~30 fps', color:'#ff9f4a', lit:1 }
+  };
+
+  /* =========================================================
+     Capa de almacenamiento
+     Funciona en dos entornos: dentro de Claude usa window.storage,
+     en un navegador normal (GitHub Pages / archivo local) usa
+     localStorage. Si ninguno responde, la sesión sigue en memoria.
+     ========================================================= */
+
+  var Store = (function(){
+    var mode = 'memory';
+
+    if (typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function') {
+      mode = 'claude';
+    } else {
+      try {
+        var probe = '__probe__';
+        window.localStorage.setItem(probe, '1');
+        window.localStorage.removeItem(probe);
+        mode = 'local';
+      } catch (e) {
+        mode = 'memory';
+      }
+    }
+
+    return {
+      mode: mode,
+      read: function(){
+        if (mode === 'claude') {
+          return window.storage.get(KEY, false)
+            .then(function(r){ return r && r.value ? r.value : null; })
+            .catch(function(){ return null; });
+        }
+        if (mode === 'local') {
+          try { return Promise.resolve(window.localStorage.getItem(KEY)); }
+          catch (e) { return Promise.resolve(null); }
+        }
+        return Promise.resolve(null);
+      },
+      write: function(raw){
+        if (mode === 'claude') {
+          return window.storage.set(KEY, raw, false).catch(function(){ return null; });
+        }
+        if (mode === 'local') {
+          try { window.localStorage.setItem(KEY, raw); return Promise.resolve(true); }
+          catch (e) { return Promise.reject(e); }
+        }
+        return Promise.resolve(false);
+      }
+    };
+  })();
+
+  var games = [];
+
+  var el = {
+    status:    document.getElementById('status'),
+    meterNum:  document.getElementById('meterNum'),
+    meterFill: document.getElementById('meterFill'),
+    composer:  document.getElementById('composer'),
+    toggle:    document.getElementById('toggleComposer'),
+    install:   document.getElementById('installBtn'),
+    save:      document.getElementById('saveBtn'),
+    cancel:    document.getElementById('cancelBtn'),
+    fName:     document.getElementById('fName'),
+    fGenre:    document.getElementById('fGenre'),
+    fPerf:     document.getElementById('fPerf'),
+    fState:    document.getElementById('fState'),
+    stacks: {
+      playing: document.getElementById('stackPlaying'),
+      pending: document.getElementById('stackPending'),
+      done:    document.getElementById('stackDone')
+    },
+    tallies: {
+      playing: document.getElementById('tallyPlaying'),
+      pending: document.getElementById('tallyPending'),
+      done:    document.getElementById('tallyDone')
+    }
+  };
+
+  function setStatus(msg, isWarn){
+    el.status.textContent = msg;
+    el.status.classList.toggle('warn', !!isWarn);
+  }
+
+  function persist(){
+    Store.write(JSON.stringify(games)).catch(function(){
+      setStatus('No se pudo guardar el cambio. Libera espacio e inténtalo de nuevo.', true);
+    });
+  }
+
+  function boot(){
+    Store.read().then(function(raw){
+      if (raw) {
+        try { games = JSON.parse(raw); }
+        catch(e){ games = SEED.slice(); }
+      } else {
+        games = SEED.slice();
+      }
+      if (!Array.isArray(games) || !games.length) games = SEED.slice();
+      render();
+      setStatus(Store.mode === 'memory'
+        ? 'Los cambios solo duran esta sesión: el guardado no está disponible aquí.'
+        : '', Store.mode === 'memory');
+    });
+  }
+
+  /* ---------- render ---------- */
+
+  var MOVES = {
+    pending: [ {to:'playing', label:'Empezar'},    {to:'done',    label:'Ya lo jugué'} ],
+    playing: [ {to:'done',    label:'Lo terminé'}, {to:'pending', label:'Pausar'} ],
+    done:    [ {to:'pending', label:'Volver a jugar'} ]
+  };
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function cardHtml(g){
+    var t = TIERS[g.perf] || TIERS[2];
+    var bars = '';
+    for (var i=1; i<=3; i++) bars += '<i class="' + (i <= t.lit ? 'lit' : '') + '"></i>';
+
+    var actions = (MOVES[g.state] || []).map(function(m){
+      return '<button class="move" data-move="' + m.to + '" data-id="' + g.id + '">' + m.label + '</button>';
+    }).join('');
+
+    return '<article class="card" style="--tier-color:' + t.color + '">' +
+             '<div class="card-top">' +
+               '<h4>' + escapeHtml(g.name) + '</h4>' +
+               '<button class="kill" data-kill="' + g.id + '" aria-label="Quitar ' + escapeHtml(g.name) + '">&times;</button>' +
+             '</div>' +
+             '<div class="genre">' + escapeHtml(g.genre) + '</div>' +
+             '<div class="perf">' +
+               '<span class="bars">' + bars + '</span>' +
+               '<span class="perf-text"><b>' + t.label + '</b>' + t.detail + '</span>' +
+             '</div>' +
+             '<div class="card-actions">' + actions + '</div>' +
+           '</article>';
+  }
+
+  var EMPTY = {
+    playing: 'Nada en curso. Mueve algo desde pendientes.',
+    pending: 'Sin pendientes. Añade un juego arriba.',
+    done:    'Aún no cierras nada. Ya caerá.'
+  };
+
+  function render(){
+    ['playing','pending','done'].forEach(function(state){
+      var list = games.filter(function(g){ return g.state === state; });
+      el.tallies[state].textContent = list.length;
+      el.stacks[state].innerHTML = list.length
+        ? list.map(cardHtml).join('')
+        : '<div class="empty">' + EMPTY[state] + '</div>';
+    });
+
+    var done = games.filter(function(g){ return g.state === 'done'; }).length;
+    var total = games.length;
+    var pct = total ? Math.round((done / total) * 100) : 0;
+    el.meterNum.innerHTML = '<b>' + done + '</b> / ' + total;
+    el.meterFill.style.width = pct + '%';
+  }
+
+  /* ---------- eventos ---------- */
+
+  document.querySelector('.board').addEventListener('click', function(ev){
+    var moveBtn = ev.target.closest('[data-move]');
+    if (moveBtn) {
+      var id = moveBtn.getAttribute('data-id');
+      var to = moveBtn.getAttribute('data-move');
+      games.forEach(function(g){ if (g.id === id) g.state = to; });
+      render(); persist();
+      return;
+    }
+    var killBtn = ev.target.closest('[data-kill]');
+    if (killBtn) {
+      var kid = killBtn.getAttribute('data-kill');
+      games = games.filter(function(g){ return g.id !== kid; });
+      render(); persist();
+    }
+  });
+
+  el.toggle.addEventListener('click', function(){
+    var open = el.composer.classList.toggle('open');
+    el.toggle.textContent = open ? 'Cerrar' : 'Añadir juego';
+    if (open) el.fName.focus();
+  });
+
+  el.cancel.addEventListener('click', function(){
+    el.composer.classList.remove('open');
+    el.toggle.textContent = 'Añadir juego';
+  });
+
+  el.save.addEventListener('click', function(){
+    var name = el.fName.value.trim();
+    if (!name) { el.fName.focus(); setStatus('Escribe el nombre del juego para guardarlo.', true); return; }
+    games.push({
+      id:    'g' + Date.now(),
+      name:  name,
+      genre: el.fGenre.value.trim() || 'Sin género',
+      perf:  parseInt(el.fPerf.value, 10),
+      state: el.fState.value
+    });
+    el.fName.value = '';
+    el.fGenre.value = '';
+    el.composer.classList.remove('open');
+    el.toggle.textContent = 'Añadir juego';
+    setStatus('');
+    render(); persist();
+  });
+
+  /* ---------- instalación PWA ---------- */
+
+  var deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', function(ev){
+    ev.preventDefault();
+    deferredPrompt = ev;
+    el.install.classList.add('visible');
+  });
+
+  el.install.addEventListener('click', function(){
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(){
+      deferredPrompt = null;
+      el.install.classList.remove('visible');
+    });
+  });
+
+  window.addEventListener('appinstalled', function(){
+    el.install.classList.remove('visible');
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    });
+  }
+
+  boot();
+})();
+</script>
+
+</body>
+</html>
