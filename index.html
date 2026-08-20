@@ -48,6 +48,13 @@
     padding:calc(26px + env(safe-area-inset-top)) 15px 70px;
   }
 
+  /* mientras se arrastra: sin selección, sin scroll accidental */
+  body.is-dragging{
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+  }
+
   .shell{max-width:1080px;margin:0 auto;}
 
   /* ---------- Encabezado ---------- */
@@ -83,6 +90,7 @@
     line-height:1.55;
     margin:0 0 22px;
   }
+  .masthead .blurb b{color:var(--violet-hot);font-weight:500;}
 
   .meter-wrap{
     border:1px solid var(--line);
@@ -276,16 +284,18 @@
   .col[data-state="pending"] .pip{background:var(--violet);box-shadow:0 0 11px rgba(169,123,255,0.7);}
   .col[data-state="done"]    .pip{background:var(--moss);box-shadow:0 0 11px rgba(95,211,160,0.7);}
 
-  .stack{display:flex;flex-direction:column;gap:11px;}
+  .stack{display:flex;flex-direction:column;gap:11px;min-height:60px;}
 
   /* ---------- Tarjeta ---------- */
 
   .card{
+    position:relative;
     background:var(--surface);
     border:1px solid var(--line);
     border-radius:15px;
     padding:15px 16px;
     animation:rise .34s cubic-bezier(.2,.85,.25,1) both;
+    -webkit-tap-highlight-color:transparent;
   }
   @keyframes rise{
     from{opacity:0;transform:translateY(7px);}
@@ -299,11 +309,53 @@
   .col[data-state="done"] .card{opacity:0.62;}
   .col[data-state="done"] .card:hover{opacity:1;}
 
+  /* estados de arrastre */
+  .card.press{
+    transform:scale(0.975);
+    transition:transform .18s ease;
+  }
+
+  .card.placeholder{
+    opacity:0.25 !important;
+    animation:none;
+    border-style:dashed;
+    border-color:var(--violet);
+  }
+  .card.placeholder > *{visibility:hidden;}
+
+  .card.flying{
+    position:fixed;
+    z-index:900;
+    margin:0;
+    animation:none;
+    pointer-events:none;
+    opacity:1 !important;
+    box-shadow:0 22px 44px -12px rgba(0,0,0,0.78), 0 0 0 1px var(--line-strong);
+    border-color:var(--violet);
+    will-change:transform;
+  }
+
   .card-top{
     display:flex;
     align-items:flex-start;
-    gap:10px;
+    gap:8px;
     margin-bottom:9px;
+  }
+
+  .grip{
+    display:flex;
+    flex-direction:column;
+    gap:2.5px;
+    padding-top:6px;
+    flex-shrink:0;
+    opacity:0.45;
+  }
+  .grip span{
+    display:block;
+    width:11px;
+    height:1.5px;
+    border-radius:2px;
+    background:var(--ink-faint);
   }
 
   .card h4{
@@ -374,7 +426,7 @@
     margin-bottom:2px;
   }
 
-  .card-actions{display:flex;gap:7px;flex-wrap:wrap;}
+  .card-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
 
   .move{
     background:rgba(255,255,255,0.05);
@@ -390,6 +442,18 @@
     border-color:var(--line-strong);
     color:var(--violet-hot);
   }
+
+  .totop{
+    margin-left:auto;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.08);
+    color:var(--ink-faint);
+    font-size:0.85rem;
+    line-height:1;
+    padding:8px 11px;
+    border-radius:9px;
+  }
+  .totop:hover{color:var(--violet-hot);border-color:var(--line-strong);}
 
   .empty{
     border:1px dashed var(--line);
@@ -423,7 +487,7 @@
   <header class="masthead">
     <div class="eyebrow">Andrés David · Iris Xe</div>
     <h1>Pendientes<br/><em>por jugar</em></h1>
-    <p class="blurb">Todo lo de aquí ya está filtrado para correr en tu laptop. Mueve un juego a “Jugando” cuando lo empieces y a “Terminado” cuando lo cierres.</p>
+    <p class="blurb">Todo lo de aquí ya está filtrado para correr en tu laptop. <b>Mantén presionada una tarjeta</b> para moverla de lugar dentro de su columna.</p>
 
     <div class="meter-wrap">
       <div class="meter-top">
@@ -532,10 +596,8 @@
   };
 
   /* =========================================================
-     Capa de almacenamiento
-     Funciona en dos entornos: dentro de Claude usa window.storage,
-     en un navegador normal (GitHub Pages / archivo local) usa
-     localStorage. Si ninguno responde, la sesión sigue en memoria.
+     Almacenamiento: localStorage en el navegador,
+     window.storage dentro de Claude, memoria como último recurso.
      ========================================================= */
 
   var Store = (function(){
@@ -545,13 +607,10 @@
       mode = 'claude';
     } else {
       try {
-        var probe = '__probe__';
-        window.localStorage.setItem(probe, '1');
-        window.localStorage.removeItem(probe);
+        window.localStorage.setItem('__probe__', '1');
+        window.localStorage.removeItem('__probe__');
         mode = 'local';
-      } catch (e) {
-        mode = 'memory';
-      }
+      } catch (e) { mode = 'memory'; }
     }
 
     return {
@@ -596,6 +655,7 @@
     fGenre:    document.getElementById('fGenre'),
     fPerf:     document.getElementById('fPerf'),
     fState:    document.getElementById('fState'),
+    board:     document.querySelector('.board'),
     stacks: {
       playing: document.getElementById('stackPlaying'),
       pending: document.getElementById('stackPending'),
@@ -619,11 +679,15 @@
     });
   }
 
+  function indexOfId(id){
+    for (var i = 0; i < games.length; i++) if (games[i].id === id) return i;
+    return -1;
+  }
+
   function boot(){
     Store.read().then(function(raw){
       if (raw) {
-        try { games = JSON.parse(raw); }
-        catch(e){ games = SEED.slice(); }
+        try { games = JSON.parse(raw); } catch(e){ games = SEED.slice(); }
       } else {
         games = SEED.slice();
       }
@@ -658,8 +722,9 @@
       return '<button class="move" data-move="' + m.to + '" data-id="' + g.id + '">' + m.label + '</button>';
     }).join('');
 
-    return '<article class="card" style="--tier-color:' + t.color + '">' +
+    return '<article class="card" data-id="' + g.id + '" style="--tier-color:' + t.color + '">' +
              '<div class="card-top">' +
+               '<span class="grip" aria-hidden="true"><span></span><span></span><span></span></span>' +
                '<h4>' + escapeHtml(g.name) + '</h4>' +
                '<button class="kill" data-kill="' + g.id + '" aria-label="Quitar ' + escapeHtml(g.name) + '">&times;</button>' +
              '</div>' +
@@ -668,7 +733,9 @@
                '<span class="bars">' + bars + '</span>' +
                '<span class="perf-text"><b>' + t.label + '</b>' + t.detail + '</span>' +
              '</div>' +
-             '<div class="card-actions">' + actions + '</div>' +
+             '<div class="card-actions">' + actions +
+               '<button class="totop" data-top="' + g.id + '" title="Mandar hasta arriba" aria-label="Mandar hasta arriba">&uarr;</button>' +
+             '</div>' +
            '</article>';
   }
 
@@ -694,17 +761,196 @@
     el.meterFill.style.width = pct + '%';
   }
 
-  /* ---------- eventos ---------- */
+  /* =========================================================
+     Arrastre para reordenar.
+     Mantener presionado ~300 ms levanta la tarjeta; después se
+     mueve con el dedo y las demás se reacomodan solas. Si el dedo
+     se desliza antes de ese tiempo, se toma como scroll normal.
+     ========================================================= */
 
-  document.querySelector('.board').addEventListener('click', function(ev){
+  var HOLD_MS   = 300;   // presión necesaria para levantar
+  var SLOP_PX   = 10;    // movimiento tolerado antes de cancelar
+  var EDGE_PX   = 90;    // franja de auto-desplazamiento
+  var EDGE_STEP = 14;    // píxeles por cuadro al auto-desplazar
+
+  var press = null;
+  var drag  = null;
+  var edgeRAF = null;
+
+  function cancelPress(){
+    if (!press) return;
+    clearTimeout(press.timer);
+    press.card.classList.remove('press');
+    press = null;
+  }
+
+  function onPointerDown(ev){
+    if (drag) return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    if (!ev.target.closest) return;
+
+    var card = ev.target.closest('.card');
+    if (!card) return;
+    if (ev.target.closest('button')) return;   // los botones tienen prioridad
+
+    var startX = ev.clientX, startY = ev.clientY;
+    card.classList.add('press');
+
+    press = {
+      card: card,
+      x: startX,
+      y: startY,
+      timer: setTimeout(function(){
+        if (press && press.card === card) beginDrag(card, startX, startY);
+      }, HOLD_MS)
+    };
+  }
+
+  function beginDrag(card, x, y){
+    var rect  = card.getBoundingClientRect();
+    var stack = card.parentNode;
+
+    clearTimeout(press.timer);
+    press = null;
+    card.classList.remove('press');
+
+    // clon que vuela siguiendo al dedo
+    var flyer = card.cloneNode(true);
+    flyer.classList.add('flying');
+    flyer.style.left   = rect.left + 'px';
+    flyer.style.top    = rect.top + 'px';
+    flyer.style.width  = rect.width + 'px';
+    flyer.style.height = rect.height + 'px';
+    document.body.appendChild(flyer);
+
+    // la original se queda como hueco guía
+    card.classList.add('placeholder');
+    card.style.height = rect.height + 'px';
+
+    document.body.classList.add('is-dragging');
+
+    drag = { card:card, flyer:flyer, stack:stack, startX:x, startY:y, lastY:y };
+
+    paintFlyer(x, y);
+
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch(e){} }
+
+    edgeRAF = requestAnimationFrame(edgeScrollLoop);
+  }
+
+  function paintFlyer(x, y){
+    if (!drag) return;
+    var dx = x - drag.startX;
+    var dy = y - drag.startY;
+    drag.flyer.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(1.03)';
+  }
+
+  function reorderAt(clientY){
+    if (!drag) return;
+    var siblings = drag.stack.querySelectorAll('.card:not(.placeholder)');
+    var target = null;
+
+    for (var i = 0; i < siblings.length; i++) {
+      var r = siblings[i].getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) { target = siblings[i]; break; }
+    }
+
+    if (target) {
+      if (drag.card.nextSibling !== target) drag.stack.insertBefore(drag.card, target);
+    } else if (drag.stack.lastElementChild !== drag.card) {
+      drag.stack.appendChild(drag.card);
+    }
+  }
+
+  function edgeScrollLoop(){
+    if (!drag) return;
+    var y = drag.lastY;
+    if (y < EDGE_PX) {
+      window.scrollBy(0, -EDGE_STEP);
+      reorderAt(y);
+    } else if (y > window.innerHeight - EDGE_PX) {
+      window.scrollBy(0, EDGE_STEP);
+      reorderAt(y);
+    }
+    edgeRAF = requestAnimationFrame(edgeScrollLoop);
+  }
+
+  function onPointerMove(ev){
+    if (press && !drag) {
+      if (Math.abs(ev.clientX - press.x) > SLOP_PX || Math.abs(ev.clientY - press.y) > SLOP_PX) {
+        cancelPress();   // se está desplazando la pantalla, no arrastrando
+      }
+      return;
+    }
+    if (!drag) return;
+
+    ev.preventDefault();
+    drag.lastY = ev.clientY;
+    paintFlyer(ev.clientX, ev.clientY);
+    reorderAt(ev.clientY);
+  }
+
+  function syncOrderFromDOM(){
+    var ordered = [];
+    ['playing','pending','done'].forEach(function(state){
+      var cards = el.stacks[state].querySelectorAll('.card');
+      for (var i = 0; i < cards.length; i++) {
+        var idx = indexOfId(cards[i].getAttribute('data-id'));
+        if (idx !== -1) ordered.push(games[idx]);
+      }
+    });
+    if (ordered.length === games.length) games = ordered;
+  }
+
+  function endDrag(){
+    if (press) { cancelPress(); return; }
+    if (!drag) return;
+
+    if (edgeRAF) { cancelAnimationFrame(edgeRAF); edgeRAF = null; }
+
+    drag.flyer.remove();
+    drag.card.classList.remove('placeholder');
+    drag.card.style.height = '';
+    document.body.classList.remove('is-dragging');
+
+    drag = null;
+
+    syncOrderFromDOM();
+    persist();
+  }
+
+  document.addEventListener('pointerdown', onPointerDown);
+  document.addEventListener('pointermove', onPointerMove, { passive:false });
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  document.addEventListener('contextmenu', function(ev){ if (drag) ev.preventDefault(); });
+  document.addEventListener('touchmove', function(ev){ if (drag) ev.preventDefault(); }, { passive:false });
+
+  /* ---------- botones de las tarjetas ---------- */
+
+  el.board.addEventListener('click', function(ev){
     var moveBtn = ev.target.closest('[data-move]');
     if (moveBtn) {
       var id = moveBtn.getAttribute('data-id');
       var to = moveBtn.getAttribute('data-move');
-      games.forEach(function(g){ if (g.id === id) g.state = to; });
+      var i = indexOfId(id);
+      if (i !== -1) {
+        var g = games.splice(i, 1)[0];
+        g.state = to;
+        games.unshift(g);          // al cambiar de columna, entra hasta arriba
+      }
       render(); persist();
       return;
     }
+
+    var topBtn = ev.target.closest('[data-top]');
+    if (topBtn) {
+      var ti = indexOfId(topBtn.getAttribute('data-top'));
+      if (ti !== -1) games.unshift(games.splice(ti, 1)[0]);
+      render(); persist();
+      return;
+    }
+
     var killBtn = ev.target.closest('[data-kill]');
     if (killBtn) {
       var kid = killBtn.getAttribute('data-kill');
@@ -727,13 +973,15 @@
   el.save.addEventListener('click', function(){
     var name = el.fName.value.trim();
     if (!name) { el.fName.focus(); setStatus('Escribe el nombre del juego para guardarlo.', true); return; }
-    games.push({
+
+    games.unshift({                 // los nuevos entran hasta arriba
       id:    'g' + Date.now(),
       name:  name,
       genre: el.fGenre.value.trim() || 'Sin género',
       perf:  parseInt(el.fPerf.value, 10),
       state: el.fState.value
     });
+
     el.fName.value = '';
     el.fGenre.value = '';
     el.composer.classList.remove('open');
