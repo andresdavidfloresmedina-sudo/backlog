@@ -1,7 +1,7 @@
 {
   "name": "Backlog — Andrés David",
   "short_name": "Backlog",
-  "description": "Lista de juegos pendientes, en curso y terminados, filtrada para Intel Iris Xe.",
+  "description": "Lista de juegos pendientes, en curso y terminados, con rendimiento en la Lenovo LOQ.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
