@@ -3,7 +3,7 @@
    Si cambias los archivos, sube el número de CACHE para forzar
    la actualización en los celulares que ya la tengan instalada. */
 
-const CACHE = 'backlog-v2';
+const CACHE = 'backlog-v3';
 
 const ASSETS = [
   './',
